@@ -208,6 +208,31 @@ def score_award_dispatch(award: dict, company: dict, config: dict) -> dict:
     return award
 
 
+def _passes_report_threshold(award: dict, config: dict) -> bool:
+    """True if an award clears the minimum score to be emailed and saved.
+
+    ``alert_settings.min_report_score`` is the cutoff (default 0 = report
+    everything). ``alert_settings.min_report_score_basis`` picks which score it
+    applies to: "value" (default), "catalyst", "both", or "either". Scored-but-
+    below-threshold awards are still de-duped so they're never re-scored.
+    """
+    cfg = config.get("alert_settings", {})
+    threshold = cfg.get("min_report_score", 0)
+    basis = cfg.get("min_report_score_basis", "value")
+
+    def num(x):
+        return x if isinstance(x, (int, float)) else 0
+
+    v, c = num(award.get("value_score")), num(award.get("catalyst_score"))
+    if basis == "catalyst":
+        return c >= threshold
+    if basis == "both":
+        return v >= threshold and c >= threshold
+    if basis == "either":
+        return v >= threshold or c >= threshold
+    return v >= threshold  # "value" (default)
+
+
 # ---------------------------------------------------------------------------
 # SAM.gov
 # ---------------------------------------------------------------------------
@@ -848,13 +873,20 @@ def run_monitor(ticker_filter: Optional[str] = None, days_override: Optional[int
                     continue
 
             score_award_dispatch(award, company, config)
-            all_alerts.append(award)
-            seen.add(uid)
-            log.info(
-                f"  NEW: {ticker} | {award['source']} | ${award['value_usd']:,.0f} | "
-                f"catalyst {award['catalyst_score']} / value {award['value_score']} "
-                f"({award['scored_by']})"
-            )
+            seen.add(uid)  # de-dup regardless of score, so we never re-score it
+
+            if _passes_report_threshold(award, config):
+                all_alerts.append(award)
+                log.info(
+                    f"  NEW: {ticker} | {award['source']} | ${award['value_usd']:,.0f} | "
+                    f"catalyst {award['catalyst_score']} / value {award['value_score']} "
+                    f"({award['scored_by']})"
+                )
+            else:
+                log.info(
+                    f"  below threshold, not reporting: {ticker} | "
+                    f"catalyst {award['catalyst_score']} / value {award['value_score']}"
+                )
 
     save_seen(seen)
 

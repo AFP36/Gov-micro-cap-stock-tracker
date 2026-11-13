@@ -5,6 +5,8 @@
     "run_interval_minutes": 60,
     "run_at_utc": ["12:30", "22:00"],
     "lookback_days": 1,
+    "min_report_score": 5,
+    "min_report_score_basis": "value",
     "email": {
       "enabled": true,
       "smtp_server": "smtp.gmail.com",
