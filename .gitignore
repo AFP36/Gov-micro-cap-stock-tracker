@@ -5,3 +5,4 @@ data/cik_map.json
 __pycache__/
 *.pyc
 .env
+data/last_heartbeat.json

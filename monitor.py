@@ -33,6 +33,7 @@ WATCHLIST_PATH = BASE_DIR / "data" / "watchlist.json"
 # Falls back to the repo's data/ dir for local use.
 STATE_DIR = Path(os.environ.get("MONITOR_STATE_DIR") or (BASE_DIR / "data"))
 SEEN_PATH = STATE_DIR / "seen_awards.json"
+HEARTBEAT_PATH = STATE_DIR / "last_heartbeat.json"
 LOG_PATH = BASE_DIR / "logs" / "monitor.log"
 
 # Ensure required directories exist before logging initializes
@@ -118,6 +119,47 @@ def load_seen() -> set:
 
 def save_seen(seen: set) -> None:
     save_json(SEEN_PATH, list(seen))
+
+
+# ---------------------------------------------------------------------------
+# Heartbeat — periodic "still watching / all quiet" email so a quiet stretch
+# doesn't look like a dead monitor. Any real alert digest also counts as proof
+# of life and resets the timer.
+# ---------------------------------------------------------------------------
+
+def _load_last_heartbeat() -> Optional[datetime]:
+    if HEARTBEAT_PATH.exists():
+        try:
+            return datetime.fromisoformat(load_json(HEARTBEAT_PATH)["last"])
+        except Exception:
+            return None
+    return None
+
+
+def record_heartbeat() -> None:
+    try:
+        save_json(HEARTBEAT_PATH, {"last": datetime.utcnow().isoformat()})
+    except Exception as e:
+        log.warning(f"Could not record heartbeat time: {e}")
+
+
+def should_send_heartbeat(config: dict) -> bool:
+    """Whether an all-quiet heartbeat is due, per alert_settings.heartbeat:
+    "off" (default) | "every_run" | "daily" | "weekly"."""
+    cadence = config["alert_settings"].get("heartbeat", "off")
+    if cadence in ("off", None, False):
+        return False
+    if cadence == "every_run":
+        return True
+    last = _load_last_heartbeat()
+    if last is None:
+        return True  # none sent yet — send one so the user sees it's alive
+    now = datetime.utcnow()
+    if cadence == "daily":
+        return now.date() > last.date()
+    if cadence == "weekly":
+        return (now - last).days >= 7
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -743,6 +785,29 @@ def format_alert_email(alerts: list) -> tuple[str, str]:
     return subject, html
 
 
+def format_heartbeat_email(watchlist: list, config: dict) -> tuple[str, str]:
+    """Short 'all quiet' email so the user knows the monitor is alive."""
+    n = len(watchlist)
+    now = datetime.now()
+    subject = f"✅ Gov Contract Monitor — all quiet ({now.strftime('%b %d %Y')})"
+    html = f"""
+    <html><body style='font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:20px;'>
+      <div style='background:#2e7d32;color:white;padding:16px 20px;border-radius:6px;margin-bottom:16px;'>
+        <h2 style='margin:0;'>Gov Contract Monitor — all quiet</h2>
+        <p style='margin:4px 0 0;opacity:.85;font-size:13px;'>{now.strftime('%A, %B %d %Y %H:%M UTC')}</p>
+      </div>
+      <p style='font-size:14px;color:#333;'>
+        No new qualifying contract awards for your {n} watchlist companies in this period.
+        The monitor is running normally — you'll get a full alert the moment something clears the bar.
+      </p>
+      <p style='font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;'>
+        Sent by the <strong>Micro-Cap Gov Contract Monitor</strong> (investor track) · repo: AFP36/Gov_award_monitor<br>
+        Periodic "still watching" heartbeat. Research / screening only — not financial advice.
+      </p>
+    </body></html>"""
+    return subject, html
+
+
 def send_email(subject: str, html_body: str, config: dict) -> None:
     cfg = config["alert_settings"]["email"]
     if not cfg.get("enabled"):
@@ -869,8 +934,14 @@ def run_monitor(ticker_filter: Optional[str] = None, days_override: Optional[int
         log_file = BASE_DIR / "output" / f"alerts_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
         save_json(log_file, all_alerts)
         log.info(f"Saved {len(all_alerts)} alerts to {log_file}")
+        record_heartbeat()  # a real digest is proof of life; resets the quiet timer
     else:
         log.info("No new matching awards found this run.")
+        if should_send_heartbeat(config):
+            subject, html = format_heartbeat_email(watchlist, config)
+            send_email(subject, html, config)
+            record_heartbeat()
+            log.info("Sent all-quiet heartbeat email.")
 
     log.info("=== Monitor run complete ===\n")
 
