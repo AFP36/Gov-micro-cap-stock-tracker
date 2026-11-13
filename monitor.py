@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Gov Contract Monitor
+Gov Microcap Stock Tracker
 Monitors SAM.gov, USASpending.gov, and SEC EDGAR for contract awards
 matching a watchlist of small/micro-cap defense & tech tickers.
 """
@@ -717,7 +717,7 @@ def format_alert_email(alerts: list) -> tuple[str, str]:
     low = [a for a in alerts if vscore(a) < 4]
 
     subject = (
-        f"🚨 Gov Contract Alert — {len(alerts)} new awards "
+        f"🚨 Gov Microcap Stock Tracker — {len(alerts)} new awards "
         f"({len(high)} high-value) — {datetime.now().strftime('%b %d %Y')}"
     )
 
@@ -767,14 +767,14 @@ def format_alert_email(alerts: list) -> tuple[str, str]:
     html = f"""
     <html><body style='font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:20px;'>
       <div style='background:#1565c0;color:white;padding:16px 20px;border-radius:6px;margin-bottom:20px;'>
-        <h2 style='margin:0;'>Gov Contract Monitor</h2>
+        <h2 style='margin:0;'>Gov Microcap Stock Tracker</h2>
         <p style='margin:4px 0 0;opacity:.85;font-size:13px;'>
           {len(alerts)} new awards found · sorted by value score · {datetime.now().strftime('%A, %B %d %Y %H:%M UTC')}
         </p>
       </div>
       {rows}
       <p style='font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;'>
-        Sent by the <strong>Micro-Cap Gov Contract Monitor</strong> (investor track) · repo: AFP36/Gov-micro-cap-stock-tracker<br>
+        Sent by the <strong>Gov Microcap Stock Tracker</strong> (investor track) · repo: AFP36/Gov-micro-cap-stock-tracker<br>
         Sources: company press releases · USASpending.gov · SEC EDGAR · Anthropic Claude (scoring)<br>
         Research / screening only — this is <strong>not</strong> a recommendation to buy or sell any
         security, and not financial advice. Scores are model-generated and may be wrong. Always do
@@ -789,11 +789,11 @@ def format_heartbeat_email(watchlist: list, config: dict) -> tuple[str, str]:
     """Short 'all quiet' email so the user knows the monitor is alive."""
     n = len(watchlist)
     now = datetime.now()
-    subject = f"✅ Gov Contract Monitor — all quiet ({now.strftime('%b %d %Y')})"
+    subject = f"✅ Gov Microcap Stock Tracker — all quiet ({now.strftime('%b %d %Y')})"
     html = f"""
     <html><body style='font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:20px;'>
       <div style='background:#2e7d32;color:white;padding:16px 20px;border-radius:6px;margin-bottom:16px;'>
-        <h2 style='margin:0;'>Gov Contract Monitor — all quiet</h2>
+        <h2 style='margin:0;'>Gov Microcap Stock Tracker — all quiet</h2>
         <p style='margin:4px 0 0;opacity:.85;font-size:13px;'>{now.strftime('%A, %B %d %Y %H:%M UTC')}</p>
       </div>
       <p style='font-size:14px;color:#333;'>
@@ -801,7 +801,7 @@ def format_heartbeat_email(watchlist: list, config: dict) -> tuple[str, str]:
         The monitor is running normally — you'll get a full alert the moment something clears the bar.
       </p>
       <p style='font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;'>
-        Sent by the <strong>Micro-Cap Gov Contract Monitor</strong> (investor track) · repo: AFP36/Gov-micro-cap-stock-tracker<br>
+        Sent by the <strong>Gov Microcap Stock Tracker</strong> (investor track) · repo: AFP36/Gov-micro-cap-stock-tracker<br>
         Periodic "still watching" heartbeat. Research / screening only — not financial advice.
       </p>
     </body></html>"""
@@ -842,7 +842,7 @@ def send_slack(alerts: list, config: dict) -> None:
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": f"*Gov Contract Monitor* — {len(alerts)} new awards, {len(high)} high-value"
+            "text": f"*Gov Microcap Stock Tracker* — {len(alerts)} new awards, {len(high)} high-value"
         }
     }]
     for a in alerts[:5]:
@@ -987,14 +987,14 @@ def run_test_score(ticker: str) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Gov Contract Monitor")
+    parser = argparse.ArgumentParser(description="Gov Microcap Stock Tracker")
     parser.add_argument("--once", action="store_true", help="Run a single sweep then exit")
     parser.add_argument("--ticker", metavar="TICKER", help="Check a single ticker (e.g. --ticker KTOS)")
     parser.add_argument("--days", type=int, metavar="N", help="Look back N days instead of the config default")
     parser.add_argument("--test-score", metavar="TICKER", help="Smoke test: score one synthetic award for TICKER and exit")
     args = parser.parse_args()
 
-    log.info("Gov Contract Monitor starting...")
+    log.info("Gov Microcap Stock Tracker starting...")
     config = load_config()
 
     if args.test_score:
