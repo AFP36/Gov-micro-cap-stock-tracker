@@ -774,7 +774,7 @@ def format_alert_email(alerts: list) -> tuple[str, str]:
       </div>
       {rows}
       <p style='font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;'>
-        Sent by the <strong>Micro-Cap Gov Contract Monitor</strong> (investor track) · repo: AFP36/Gov_award_monitor<br>
+        Sent by the <strong>Micro-Cap Gov Contract Monitor</strong> (investor track) · repo: AFP36/Gov-micro-cap-stock-tracker<br>
         Sources: company press releases · USASpending.gov · SEC EDGAR · Anthropic Claude (scoring)<br>
         Research / screening only — this is <strong>not</strong> a recommendation to buy or sell any
         security, and not financial advice. Scores are model-generated and may be wrong. Always do
@@ -801,7 +801,7 @@ def format_heartbeat_email(watchlist: list, config: dict) -> tuple[str, str]:
         The monitor is running normally — you'll get a full alert the moment something clears the bar.
       </p>
       <p style='font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;'>
-        Sent by the <strong>Micro-Cap Gov Contract Monitor</strong> (investor track) · repo: AFP36/Gov_award_monitor<br>
+        Sent by the <strong>Micro-Cap Gov Contract Monitor</strong> (investor track) · repo: AFP36/Gov-micro-cap-stock-tracker<br>
         Periodic "still watching" heartbeat. Research / screening only — not financial advice.
       </p>
     </body></html>"""
