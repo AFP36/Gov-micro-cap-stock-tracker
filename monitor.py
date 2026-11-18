@@ -1006,15 +1006,19 @@ def main():
         return
 
     # Continuous worker mode: run once on startup, then daily at the configured
-    # UTC times. Runs as a persistent Render Worker so de-dup state (on the
-    # mounted disk) survives between the scheduled runs.
-    run_times = config["alert_settings"].get("run_at_utc") or ["12:30", "22:00"]
+    # local times. The schedule is timezone-aware (run_at + timezone), so it
+    # fires at a fixed wall-clock time in that zone year-round — it tracks
+    # daylight-saving automatically instead of drifting with UTC. Runs as a
+    # persistent Render Worker so de-dup state (on the mounted disk) survives.
+    cfg = config["alert_settings"]
+    run_times = cfg.get("run_at") or cfg.get("run_at_utc") or ["08:30", "18:00"]
+    tz = cfg.get("timezone", "America/New_York")
     run_monitor()
     for t in run_times:
-        schedule.every().day.at(t).do(run_monitor)
+        schedule.every().day.at(t, tz).do(run_monitor)
     log.info(
-        f"Scheduler active — running daily at UTC {', '.join(run_times)} "
-        f"(≈ 8:30 AM / 6:00 PM ET during EDT). Ctrl+C to stop."
+        f"Scheduler active — running daily at {', '.join(run_times)} {tz} "
+        f"(year-round, daylight-saving aware). Ctrl+C to stop."
     )
 
     while True:
